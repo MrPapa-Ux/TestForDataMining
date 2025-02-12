@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Data Smoothing Methods</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <h2>Data Smoothing Methods with Predictions</h2>
+    <input type="number" id="dataInput" placeholder="Masukkan data" />
+    <button onclick="addData()">Add Data</button>
+    <button onclick="calculateAndPlot()">Plot Graph</button>
+    <p>Data yang dimasukkan: <span id="dataDisplay">(Kosong)</span></p>
+    <canvas id="chartCanvas"></canvas>
+
+    <script>
+      let dataPoints = [];
+      let maxDataPoints = 5;
+      let futurePoints = 5;
+
+      function updateDataDisplay() {
+        document.getElementById("dataDisplay").textContent = dataPoints.length
+          ? dataPoints.join(", ")
+          : "(Kosong)";
+      }
+
+      function addData() {
+        let input = document.getElementById("dataInput").value;
+        if (input !== "" && dataPoints.length < maxDataPoints) {
+          dataPoints.push(parseFloat(input));
+          document.getElementById("dataInput").value = "";
+          updateDataDisplay();
+        }
+      }
+
+      function movingAverage(data, period = 3) {
+        let result = [];
+        for (let i = 0; i < data.length; i++) {
+          if (i < period - 1) {
+            result.push(null);
+          } else {
+            let sum = 0;
+            for (let j = 0; j < period; j++) {
+              sum += data[i - j];
+            }
+            result.push(sum / period);
+          }
+        }
+        for (let i = 0; i < futurePoints; i++) {
+          let avg = result.slice(-period).reduce((a, b) => a + b, 0) / period;
+          result.push(avg);
+        }
+        return result;
+      }
+
+      function exponentialMovingAverage(data, alpha = 0.5) {
+        let result = [data[0]];
+        for (let i = 1; i < data.length; i++) {
+          result.push(alpha * data[i] + (1 - alpha) * result[i - 1]);
+        }
+        for (let i = 0; i < futurePoints; i++) {
+          let lastValue = result[result.length - 1];
+          result.push(alpha * lastValue + (1 - alpha) * lastValue);
+        }
+        return result;
+      }
+
+      function randomWalk(data) {
+        let result = [...data];
+        let lastValue = data[data.length - 1];
+        for (let i = 0; i < futurePoints; i++) {
+          let change = (Math.random() - 0.5) * 2;
+          lastValue += change;
+          result.push(lastValue);
+        }
+        return result;
+      }
+
+      function smoothedRandomWalk(data, alpha = 0.2) {
+        let randWalk = randomWalk(data);
+        let result = [randWalk[0]];
+        for (let i = 1; i < randWalk.length; i++) {
+          result.push(alpha * randWalk[i] + (1 - alpha) * result[i - 1]);
+        }
+        return result;
+      }
+
+      function calculateAndPlot() {
+        if (dataPoints.length < maxDataPoints) {
+          alert("Please enter at least " + maxDataPoints + " numbers.");
+          return;
+        }
+
+        let labels = [...Array(dataPoints.length + futurePoints).keys()].map(
+          (i) => i + 1
+        );
+        let movingAvg = movingAverage(dataPoints);
+        let expMovingAvg = exponentialMovingAverage(dataPoints);
+        let randWalk = randomWalk(dataPoints);
+        let smRandWalk = smoothedRandomWalk(dataPoints);
+
+        let ctx = document.getElementById("chartCanvas").getContext("2d");
+        new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: "Original Data",
+                data: [...dataPoints, ...Array(futurePoints).fill(null)],
+                borderColor: "black",
+                fill: false,
+              },
+              {
+                label: "Moving Average",
+                data: movingAvg,
+                borderColor: "blue",
+                borderDash: [5, 5],
+                fill: false,
+              },
+              {
+                label: "Exponential Moving Average",
+                data: expMovingAvg,
+                borderColor: "purple",
+                borderDash: [5, 5],
+                fill: false,
+              },
+              {
+                label: "Random Walk",
+                data: randWalk,
+                borderColor: "green",
+                borderDash: [5, 5],
+                fill: false,
+              },
+              {
+                label: "Smoothed Random Walk",
+                data: smRandWalk,
+                borderColor: "red",
+                borderDash: [5, 5],
+                fill: false,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            scales: { y: { beginAtZero: false } },
+          },
+        });
+      }
+    </script>
+  </body>
+</html>
