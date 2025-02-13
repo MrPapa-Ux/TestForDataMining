@@ -78,11 +78,16 @@
         return result;
       }
 
-      function smoothedRandomWalk(data, alpha = 0.2) {
-        let randWalk = randomWalk(data);
-        let result = [randWalk[0]];
-        for (let i = 1; i < randWalk.length; i++) {
-          result.push(alpha * randWalk[i] + (1 - alpha) * result[i - 1]);
+      // Ganti fungsi "smoothedRandomWalk" menjadi "ses" (Simple Exponential Smoothing)
+      function ses(data, alpha = 0.5) {
+        let result = [data[0]];
+        for (let i = 1; i < data.length; i++) {
+          result.push(alpha * data[i] + (1 - alpha) * result[i - 1]);
+        }
+        // Forecast futurePoints: nilai forecast adalah nilai terakhir
+        for (let i = 0; i < futurePoints; i++) {
+          let lastValue = result[result.length - 1];
+          result.push(lastValue);
         }
         return result;
       }
@@ -99,7 +104,7 @@
         let movingAvg = movingAverage(dataPoints);
         let expMovingAvg = exponentialMovingAverage(dataPoints);
         let randWalk = randomWalk(dataPoints);
-        let smRandWalk = smoothedRandomWalk(dataPoints);
+        let sesResult = ses(dataPoints);
 
         let ctx = document.getElementById("chartCanvas").getContext("2d");
         new Chart(ctx, {
@@ -135,8 +140,8 @@
                 fill: false,
               },
               {
-                label: "Smoothed Random Walk",
-                data: smRandWalk,
+                label: "SES",
+                data: sesResult,
                 borderColor: "red",
                 borderDash: [5, 5],
                 fill: false,
